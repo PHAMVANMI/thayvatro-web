@@ -14,17 +14,13 @@ module.exports = async function(req, res) {
             return res.status(500).json({ error: "Thiếu biến môi trường CLOUDKIT_KEY_ID hoặc PRIVATE_KEY" });
         }
 
-        // 🌟 THUẬT TOÁN TỰ ĐỘNG SỬA ĐỊNH DẠNG CHÌA KHÓA BỊ VERCEL LÀM HỎNG
-        privateKey = privateKey.replace(/\\n/g, '\n');
-        if (!privateKey.includes('\n')) {
-            const match = privateKey.match(/-----BEGIN PRIVATE KEY-----\s*(.*?)\s*-----END PRIVATE KEY-----/);
-            if (match) {
-                const base64Str = match[1].replace(/\s+/g, '');
-                // Cắt chuỗi thành từng dòng 64 ký tự chuẩn Apple
-                const chunks = base64Str.match(/.{1,64}/g).join('\n');
-                privateKey = `-----BEGIN PRIVATE KEY-----\n${chunks}\n-----END PRIVATE KEY-----`;
-            }
-        }
+        // 🌟 THUẬT TOÁN ĐỊNH DẠNG LẠI CHÌA KHÓA BẤT BẠI (BULLTPROOF)
+        // 1. Xóa bỏ tất cả các tiêu đề (BEGIN/END) cũ và mọi khoảng trắng/xuống dòng bị lỗi
+        let rawKey = privateKey.replace(/-----.*?-----/g, '').replace(/\s+/g, '');
+        // 2. Cắt lại lõi chìa khóa thành từng dòng 64 ký tự chuẩn chỉnh
+        let chunks = rawKey.match(/.{1,64}/g).join('\n');
+        // 3. Bọc lại bằng chuẩn EC PRIVATE KEY chính xác của Apple
+        let formattedPrivateKey = `-----BEGIN EC PRIVATE KEY-----\n${chunks}\n-----END EC PRIVATE KEY-----`;
 
         const date = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
         const path = `/database/1/${container}/${environment}/public/records/modify`;
@@ -53,7 +49,9 @@ module.exports = async function(req, res) {
         const body = JSON.stringify(payload);
         const hash = crypto.createHash('sha256').update(body).digest('base64');
         const message = `${date}:${hash}:${path}`;
-        const signature = crypto.createSign('sha256').update(message).sign(privateKey, 'base64');
+        
+        // Ký chữ ký số bằng chìa khóa đã bọc lại
+        const signature = crypto.createSign('sha256').update(message).sign(formattedPrivateKey, 'base64');
 
         const response = await fetch(`https://api.apple-cloudkit.com${path}`, {
             method: 'POST',
