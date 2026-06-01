@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tham gia phòng thi - Thầy và Trò</title>
+    <title>Phòng Thi Trực Tuyến - Thầy và Trò</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js"></script>
     <style>
@@ -20,164 +20,142 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 1.5rem;
         }
-        .btn-gradient {
-            background: linear-gradient(to right, #0d9488, #2563eb);
-            transition: all 0.3s ease;
-        }
+        .btn-gradient { background: linear-gradient(to right, #0d9488, #2563eb); transition: all 0.3s; }
         .btn-gradient:active { transform: scale(0.96); }
         .hidden-state { display: none !important; }
         
-        #apple-sign-in-button {
-            display: inline-block;
-            margin-top: 10px;
+        /* Giao diện câu hỏi */
+        .option-btn {
+            background: rgba(255, 255, 255, 0.1); border: 2px solid transparent; transition: all 0.2s;
+        }
+        .option-btn.selected {
+            background: rgba(59, 130, 246, 0.2); border-color: #3b82f6;
         }
     </style>
 </head>
-<body class="flex items-center justify-center p-4">
+<body class="flex flex-col items-center justify-center p-4">
 
-    <div id="state-auth" class="glass-card w-full max-w-md p-8 shadow-2xl transition-all duration-500 text-center">
-        <div class="flex justify-center mb-6">
-            <div class="bg-gray-800 p-4 rounded-full shadow-lg border border-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.19 2.31-.88 3.5-.85 1.5.03 2.88.65 3.82 1.76-3.39 1.95-2.85 5.92.51 7.24-.8 1.96-1.92 3.52-2.91 4.02zm-5.15-13.6c-.1-2.48 1.91-4.66 4.41-4.68.29 2.58-2.12 4.79-4.41 4.68z"/>
-                </svg>
-            </div>
-        </div>
+    <div id="state-auth" class="glass-card w-full max-w-md p-8 shadow-2xl text-center">
         <h1 class="text-2xl font-black mb-2">Đăng Nhập Apple</h1>
-        <p class="text-sm text-gray-300 mb-8">Hệ thống yêu cầu định danh tài khoản để ghi nhận kết quả bài thi chính thức.</p>
-        
-        <div id="apple-sign-in-button"></div>
+        <p class="text-sm text-gray-300 mb-6">Hệ thống yêu cầu định danh để ghi điểm vào hệ thống của giáo viên.</p>
+        <div id="apple-sign-in-button" class="mt-4"></div>
     </div>
 
-    <div id="state-input" class="hidden-state glass-card w-full max-w-md p-8 shadow-2xl transition-all duration-500 text-center">
-        <div class="flex justify-center mb-6">
-            <div class="bg-gradient-to-br from-red-500 to-blue-500 p-4 rounded-full shadow-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
-                </svg>
-            </div>
-        </div>
+    <div id="state-input" class="hidden-state glass-card w-full max-w-md p-8 shadow-2xl text-center">
         <h1 class="text-2xl font-black mb-1">Tham Gia Kiểm Tra</h1>
-        <p class="text-sm text-green-400 font-bold mb-6" id="auth-success-text">Đã định danh thành công</p>
-
+        <p class="text-sm text-green-400 font-bold mb-6">Đã định danh thành công</p>
         <form id="joinForm" class="space-y-4">
-            <div>
-                <input type="text" id="roomCode" placeholder="MÃ PHÒNG (6 SỐ)" maxlength="6" required
-                    class="w-full bg-white/10 border border-white/30 text-white text-center font-mono text-2xl font-bold rounded-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-white/50 uppercase">
-            </div>
-            <div>
-                <input type="text" id="studentName" placeholder="Họ và tên của bạn" required
-                    class="w-full bg-white/10 border border-teal-500/50 text-white rounded-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-teal-400 placeholder-white/50">
-            </div>
-            <div>
-                <input type="text" id="studentId" placeholder="Mã số học sinh / sinh viên" required
-                    class="w-full bg-white/10 border border-teal-500/50 text-white rounded-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-teal-400 placeholder-white/50">
-            </div>
-            <button type="submit" id="submitBtn" class="btn-gradient w-full text-white font-bold text-lg rounded-full py-4 mt-4 shadow-lg hover:shadow-xl">
-                Vào Phòng
-            </button>
+            <input type="text" id="roomCode" placeholder="MÃ PHÒNG (6 SỐ)" maxlength="6" required class="w-full bg-white/10 border border-white/30 text-white text-center font-mono text-2xl font-bold rounded-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-blue-400 uppercase">
+            <input type="text" id="studentName" placeholder="Họ và tên của bạn" required class="w-full bg-white/10 border border-teal-500/50 text-white rounded-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-teal-400">
+            <input type="text" id="studentId" placeholder="Mã số học sinh" required class="w-full bg-white/10 border border-teal-500/50 text-white rounded-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-teal-400">
+            <button type="submit" id="submitBtn" class="btn-gradient w-full text-white font-bold text-lg rounded-full py-4 mt-4">Vào Phòng</button>
         </form>
     </div>
 
     <div id="state-waiting" class="hidden-state glass-card w-full max-w-md p-8 shadow-2xl text-center">
         <div class="flex justify-center mb-6">
-            <div class="bg-orange-500/80 p-6 rounded-full animate-pulse">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            <div id="waiting-icon" class="bg-orange-500/80 p-6 rounded-full animate-pulse">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
         </div>
-        <h2 class="text-2xl font-black text-white mb-2">Đang chờ phê duyệt</h2>
-        <p class="text-gray-300 mb-8">Hệ thống đã gửi yêu cầu. Vui lòng nhìn lên màn hình của giáo viên và đợi xác nhận để nhận đề thi.</p>
-        <button id="cancelBtn" class="bg-white/10 border border-white/30 text-white font-bold rounded-full py-3 px-8 hover:bg-white/20 transition">Rời hàng đợi</button>
+        <h2 id="waiting-title" class="text-2xl font-black text-white mb-2">Đang chờ phê duyệt</h2>
+        <p id="waiting-desc" class="text-gray-300 mb-8">Vui lòng nhìn lên màn hình của giáo viên. Đợi thầy cô duyệt và bấm Bắt đầu thi.</p>
+    </div>
+
+    <div id="state-exam" class="hidden-state w-full max-w-2xl pb-20">
+        <div class="glass-card p-4 mb-6 flex justify-between items-center sticky top-4 z-50">
+            <div class="text-white font-bold">Câu hỏi: <span id="progress-text" class="text-cyan-400">0/0</span></div>
+            <button id="finishBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full font-bold text-sm">Nộp Bài Ngay</button>
+        </div>
+        
+        <div id="questions-container" class="space-y-8">
+            </div>
+    </div>
+
+    <div id="state-result" class="hidden-state glass-card w-full max-w-md p-8 shadow-2xl text-center">
+        <div class="text-6xl mb-4">🏆</div>
+        <h2 class="text-3xl font-black text-white mb-2">Hoàn Thành!</h2>
+        <p class="text-gray-300 mb-6">Bạn đã nộp bài thành công. Điểm số đã được gửi trực tiếp đến màn hình của giáo viên.</p>
+        <div class="bg-white/10 p-6 rounded-2xl mb-6">
+            <div class="text-sm text-gray-300">Điểm của bạn</div>
+            <div id="final-score" class="text-5xl font-black text-cyan-400 mt-2">0.0</div>
+        </div>
     </div>
 
     <script>
+        // Giao diện
         const stateAuth = document.getElementById('state-auth');
         const stateInput = document.getElementById('state-input');
         const stateWaiting = document.getElementById('state-waiting');
-        const joinForm = document.getElementById('joinForm');
-        const roomCodeInput = document.getElementById('roomCode');
-        const cancelBtn = document.getElementById('cancelBtn');
-        
-        let currentUserRecordName = null;
+        const stateExam = document.getElementById('state-exam');
+        const stateResult = document.getElementById('state-result');
+        const submitBtn = document.getElementById('submitBtn');
 
-        // 1. KHỞI TẠO CLOUDKIT JS
+        let currentUserRecordName = null;
+        let publicDB = null;
+        
+        // Biến lưu trữ dữ liệu thi
+        let activeRoomRecordName = null;
+        let activePlayerRecordName = null;
+        let pollInterval = null;
+        let examQuestions = [];
+        let studentAnswers = {}; // { "questionId": ["đáp_án_chọn"] }
+
+        // 1. KHỞI TẠO CLOUDKIT
         CloudKit.configure({
             containers: [{
                 containerIdentifier: 'iCloud.com.mipham.testeduviet',
-                apiTokenAuth: {
-                    apiToken: 'debcca1ac08a3645258f6c48b1c5b94fe5214cd060912ef8447b8d92fd9020ef',
-                    persist: true
-                },
+                apiTokenAuth: { apiToken: 'debcca1ac08a3645258f6c48b1c5b94fe5214cd060912ef8447b8d92fd9020ef', persist: true },
                 environment: 'development'
             }]
         });
 
         const container = CloudKit.getDefaultContainer();
-        const publicDB = container.publicCloudDatabase;
+        publicDB = container.publicCloudDatabase;
 
-        // 2. XÁC THỰC TÀI KHOẢN APPLE (BẮT BUỘC ĐỂ LẤY deviceAccountID)
-        container.setUpAuth().then(function(userInfo) {
+        // 2. AUTHENTICATION
+        container.setUpAuth().then(userInfo => {
             if(userInfo) {
                 currentUserRecordName = userInfo.userRecordName;
-                stateAuth.classList.add('hidden-state');
-                stateInput.classList.remove('hidden-state');
+                stateAuth.classList.add('hidden-state'); stateInput.classList.remove('hidden-state');
             } else {
                 stateAuth.classList.remove('hidden-state');
-                stateInput.classList.add('hidden-state');
-                
-                container.whenUserSignsIn().then(function(userInfo) {
-                    currentUserRecordName = userInfo.userRecordName;
-                    stateAuth.classList.add('hidden-state');
-                    stateInput.classList.remove('hidden-state');
+                container.whenUserSignsIn().then(info => {
+                    currentUserRecordName = info.userRecordName;
+                    stateAuth.classList.add('hidden-state'); stateInput.classList.remove('hidden-state');
                 });
             }
-        }).catch(function(error) {
-            console.error("Lỗi xác thực:", error);
         });
 
-        // 3. XỬ LÝ GIAO THỨC VÀO PHÒNG (TRÙNG KHỚP 100% VỚI SWIFT CLOUDKITMANAGER)
-        joinForm.addEventListener('submit', async function(e) {
+        // 3. GHI DANH VÀO PHÒNG (KHỚP LUỒNG CLOUDKITMANAGER.SWIFT)
+        document.getElementById('joinForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const code = roomCodeInput.value.toUpperCase();
+            const code = document.getElementById('roomCode').value.toUpperCase();
             const name = document.getElementById('studentName').value;
             const studentId = document.getElementById('studentId').value;
-            const btn = document.getElementById('submitBtn');
 
-            btn.innerText = "Đang tìm phòng...";
-            btn.disabled = true;
+            submitBtn.innerText = "Đang kết nối..."; submitBtn.disabled = true;
 
             try {
-                // BƯỚC 3.1: Truy vấn GameRoom để lấy RecordID của phòng
-                const query = {
-                    recordType: 'GameRoom',
-                   filterBy: [{ fieldName: 'roomCode', comparator: 'EQUALS', fieldValue: { value: code, type: 'STRING' } }]
-                };
-                
+                // Truy vấn GameRoom
+                const query = { recordType: 'GameRoom', filterBy: [{ fieldName: 'roomCode', comparator: 'EQUALS', fieldValue: { value: code, type: 'STRING' } }] };
                 const roomResponse = await publicDB.performQuery(query);
                 
                 if (roomResponse.records.length === 0) {
-                    alert("Mã phòng không tồn tại hoặc đã bị đóng!");
-                    btn.innerText = "Vào Phòng";
-                    btn.disabled = false;
-                    return;
+                    alert("Mã phòng không tồn tại! (Hãy chắc chắn giáo viên vừa tạo phòng mới)");
+                    submitBtn.innerText = "Vào Phòng"; submitBtn.disabled = false; return;
                 }
 
-                const roomRecordName = roomResponse.records[0].recordName;
-                btn.innerText = "Đang ghi danh...";
+                activeRoomRecordName = roomResponse.records[0].recordName;
 
-                // BƯỚC 3.2: Tạo bản ghi GamePlayer khớp chính xác với Schema của iOS
-                const newPlayerRecord = {
+                // Ghi danh GamePlayer
+                const newPlayer = {
                     recordType: 'GamePlayer',
                     fields: {
-                        roomReference: { 
-                            value: { recordName: roomRecordName, action: 'DELETE_SELF' }, 
-                            type: 'REFERENCE' 
-                        },
+                        roomReference: { value: { recordName: activeRoomRecordName, action: 'DELETE_SELF' }, type: 'REFERENCE' },
                         studentName: { value: name },
                         studentCode: { value: studentId },
-                        deviceAccountID: { value: currentUserRecordName }, // Cực kỳ quan trọng để iOS nhận diện
+                        deviceAccountID: { value: currentUserRecordName },
                         status: { value: 'pending' },
                         totalScore: { value: 0.0 },
                         correctCount: { value: 0 },
@@ -185,30 +163,138 @@
                     }
                 };
 
-                const saveResponse = await publicDB.saveRecord(newPlayerRecord);
-                
-                if (saveResponse.hasErrors) {
-                    throw new Error(saveResponse.errors[0].message);
-                }
+                const saveRes = await publicDB.saveRecord(newPlayer);
+                activePlayerRecordName = saveRes.records[0].recordName;
 
-                // Thành công -> Chuyển sang màn hình chờ duyệt
+                // Chuyển sang màn chờ & Bắt đầu Poll
                 stateInput.classList.add('hidden-state');
                 stateWaiting.classList.remove('hidden-state');
+                startPolling();
 
             } catch (error) {
-                console.error("Lỗi hệ thống:", error);
-                alert("Lỗi kết nối Apple CloudKit. Xin thử lại.");
-                btn.innerText = "Vào Phòng";
-                btn.disabled = false;
+                console.error(error); alert("Lỗi mạng. Vui lòng thử lại.");
+                submitBtn.innerText = "Vào Phòng"; submitBtn.disabled = false;
             }
         });
 
-        cancelBtn.addEventListener('click', function() {
+        // 4. QUÉT TRẠNG THÁI (POLLING) Y HỆT APP HỌC SINH
+        function startPolling() {
+            pollInterval = setInterval(async () => {
+                try {
+                    // Kiểm tra trạng thái học sinh
+                    const playerRes = await publicDB.fetchRecord(activePlayerRecordName);
+                    const pStatus = playerRes.fields.status.value;
+
+                    if (pStatus === 'banned') {
+                        clearInterval(pollInterval);
+                        alert("Giáo viên đã từ chối bạn vào phòng!");
+                        window.location.reload(); return;
+                    }
+
+                    if (pStatus === 'approved') {
+                        document.getElementById('waiting-title').innerText = "Đã được duyệt!";
+                        document.getElementById('waiting-desc').innerText = "Đang chờ giáo viên bấm nút Bắt Đầu Thi...";
+                        document.getElementById('waiting-icon').classList.replace('bg-orange-500/80', 'bg-green-500/80');
+
+                        // Nếu đã duyệt, kiểm tra phòng đã start chưa
+                        const roomRes = await publicDB.fetchRecord(activeRoomRecordName);
+                        const rStatus = roomRes.fields.status.value;
+
+                        if (rStatus === 'playing') {
+                            clearInterval(pollInterval);
+                            // Lấy đề thi từ JSON trong GameRoom
+                            const jsonStr = roomRes.fields.questionData.value;
+                            examQuestions = JSON.parse(jsonStr);
+                            startExam();
+                        }
+                    }
+                } catch (e) { console.error("Lỗi Polling:", e); }
+            }, 3000); // Quét mỗi 3 giây
+        }
+
+        // 5. HIỂN THỊ ĐỀ THI
+        function startExam() {
             stateWaiting.classList.add('hidden-state');
-            stateInput.classList.remove('hidden-state');
-            document.getElementById('submitBtn').innerText = "Vào Phòng";
-            document.getElementById('submitBtn').disabled = false;
+            stateExam.classList.remove('hidden-state');
+            
+            const container = document.getElementById('questions-container');
+            container.innerHTML = "";
+            document.getElementById('progress-text').innerText = `0/${examQuestions.length}`;
+
+            examQuestions.forEach((q, index) => {
+                studentAnswers[q.id] = []; // Khởi tạo rỗng
+
+                let html = `
+                <div class="glass-card p-6 w-full">
+                    <div class="text-sm text-cyan-400 font-bold mb-2">Câu ${index + 1}</div>
+                    <div class="text-xl font-bold text-white mb-4 leading-relaxed">${cleanText(q.content)}</div>
+                    <div class="space-y-3">
+                `;
+
+                q.options.forEach((opt, optIndex) => {
+                    const cleanOpt = cleanText(opt);
+                    html += `<button onclick="selectOption('${q.id}', '${cleanOpt}', this)" class="option-btn w-full text-left px-5 py-4 rounded-xl text-white font-medium hover:bg-white/20">${cleanOpt}</button>`;
+                });
+
+                html += `</div></div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        // Loại bỏ rác định dạng "Câu 1: " hoặc "A. "
+        function cleanText(txt) {
+            return txt.replace(/^Câu\s*\d+[\:\.\-]\s*/i, '').replace(/^[A-Z][\.\/\)\-]\s*/, '').trim();
+        }
+
+        // 6. XỬ LÝ CHỌN ĐÁP ÁN VÀ ĐẨY ĐIỂM LÊN CLOUDKIT
+        async function selectOption(questionId, selectedValue, btnElement) {
+            // Cập nhật UI
+            const parent = btnElement.parentElement;
+            Array.from(parent.children).forEach(child => child.classList.remove('selected'));
+            btnElement.classList.add('selected');
+
+            // Lưu đáp án
+            studentAnswers[questionId] = [selectedValue];
+            
+            // Đếm số câu đã làm
+            let answered = Object.values(studentAnswers).filter(arr => arr.length > 0).length;
+            document.getElementById('progress-text').innerText = `${answered}/${examQuestions.length}`;
+
+            // TÍNH ĐIỂM NGAY LẬP TỨC (Giống LiveExamPlayerView.swift)
+            let correctCount = 0;
+            examQuestions.forEach(q => {
+                const myAns = studentAnswers[q.id] || [];
+                const correctAns = q.correctAnswer.map(ans => cleanText(ans));
+                if (myAns.length > 0 && myAns[0].toLowerCase() === correctAns[0].toLowerCase()) {
+                    correctCount++;
+                }
+            });
+            const totalScore = (correctCount / examQuestions.length) * 10.0;
+
+            // ĐẨY ĐIỂM LÊN APPLE ĐỂ GIÁO VIÊN THẤY NGAY LẬP TỨC
+            try {
+                const playerRec = await publicDB.fetchRecord(activePlayerRecordName);
+                playerRec.fields.correctCount = { value: correctCount };
+                playerRec.fields.totalScore = { value: totalScore };
+                await publicDB.saveRecord(playerRec);
+            } catch (e) { console.error("Lỗi đồng bộ điểm", e); }
+        }
+
+        // 7. NỘP BÀI KẾT THÚC
+        document.getElementById('finishBtn').addEventListener('click', async () => {
+            stateExam.classList.add('hidden-state');
+            stateResult.classList.remove('hidden-state');
+            
+            let correctCount = 0;
+            examQuestions.forEach(q => {
+                const myAns = studentAnswers[q.id] || [];
+                const correctAns = q.correctAnswer.map(ans => cleanText(ans));
+                if (myAns.length > 0 && myAns[0].toLowerCase() === correctAns[0].toLowerCase()) correctCount++;
+            });
+            const totalScore = (correctCount / examQuestions.length) * 10.0;
+            document.getElementById('final-score').innerText = totalScore.toFixed(1);
         });
+
     </script>
 </body>
 </html>
