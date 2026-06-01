@@ -126,6 +126,8 @@
                     handleUserAuthenticated(info.userRecordName);
                 });
             }
+        }).catch(function(error) {
+            console.error("Lỗi xác thực:", error);
         });
 
         function handleUserAuthenticated(userRecordName) {
@@ -180,7 +182,8 @@
                     }
                 };
 
-                const saveRes = await publicDatabase.saveRecord(newPlayer);
+                // ĐÃ SỬA LỖI Ở ĐÂY: Dùng đúng publicDB thay vì publicDatabase
+                const saveRes = await publicDB.saveRecord(newPlayer);
                 activePlayerRecordName = saveRes.records[0].recordName;
 
                 stateInput.classList.add('hidden-state');
