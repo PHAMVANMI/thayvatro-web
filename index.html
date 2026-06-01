@@ -152,7 +152,7 @@
                 // BƯỚC 3.1: Truy vấn GameRoom để lấy RecordID của phòng
                 const query = {
                     recordType: 'GameRoom',
-                    filterBy: [{ fieldName: 'roomCode', comparator: 'EQUALS', fieldValue: { value: code } }]
+                   filterBy: [{ fieldName: 'roomCode', comparator: 'EQUALS', fieldValue: { value: code, type: 'STRING' } }]
                 };
                 
                 const roomResponse = await publicDB.performQuery(query);
