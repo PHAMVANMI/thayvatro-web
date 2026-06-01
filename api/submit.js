@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 
-export default async function handler(req, res) {
+module.exports = async function(req, res) {
+    // Vercel API chỉ nhận lệnh Gửi dữ liệu (POST)
     if (req.method !== 'POST') return res.status(405).json({ error: 'Chỉ hỗ trợ POST' });
 
     try {
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
         const date = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
         const path = `/database/1/${container}/${environment}/public/records/modify`;
         
-        // BẮT BUỘC CỦA APPLE: Tự sinh ID ngẫu nhiên cho bản ghi nộp bài
+        // Tự sinh ID ngẫu nhiên cho bản ghi nộp bài (Bắt buộc của Apple)
         const recordName = crypto.randomUUID();
 
         // Định dạng payload siêu chặt chẽ kèm TYPE để không bị lỗi Schema
@@ -66,7 +67,6 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok) {
-            // Ném thẳng lỗi của Apple ra ngoài để Web hiển thị
             return res.status(response.status).json({ error: "Apple Error: " + JSON.stringify(data) });
         }
 
@@ -74,4 +74,4 @@ export default async function handler(req, res) {
     } catch (error) {
         res.status(500).json({ error: "Server Vercel Error: " + error.message });
     }
-}
+};
