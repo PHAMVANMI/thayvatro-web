@@ -146,16 +146,46 @@
                 const correctAns = q.correctAnswer.map(ans => cleanText(ans));
                 if (myAns.length > 0 && myAns[0].toLowerCase() === correctAns[0].toLowerCase()) correctCount++;
             });
-            const totalScore = (correctCount / examQuestions.length) * 10.0;
+            const totalScore = examQuestions.length === 0 ? 0.0 : (correctCount / examQuestions.length) * 10.0;
 
             const payload = {
                 roomRecordName: activeRoomRecordName,
                 studentName: document.getElementById('studentName').value,
-                studentCode: document.getElementById('studentId').value.toUpperCase(), // Gửi ID lên API
+                studentCode: document.getElementById('studentId').value.toUpperCase(),
                 correctCount: correctCount,
                 totalScore: totalScore
             };
 
+            try {
+                const res = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                // Đọc nguyên bản dữ liệu trả về từ máy chủ
+                const responseText = await res.text(); 
+                let responseData;
+                try {
+                    responseData = JSON.parse(responseText);
+                } catch(parseErr) {
+                    throw new Error("MÁY CHỦ BỊ SẬP (Lỗi Code): " + responseText.substring(0, 100));
+                }
+                
+                if(!res.ok) {
+                    throw new Error(responseData.error + " - " + JSON.stringify(responseData.details || responseData.message));
+                }
+
+                document.getElementById('state-exam').classList.add('hidden-state');
+                document.getElementById('state-result').classList.remove('hidden-state');
+                document.getElementById('final-score').innerText = totalScore.toFixed(1);
+                document.getElementById('final-correct').innerText = `${correctCount}/${examQuestions.length} Câu đúng`;
+                
+            } catch(e) {
+                alert("CHI TIẾT LỖI:\n" + e.message);
+                btn.innerText = "Nộp Bài"; btn.disabled = false;
+            }
+        });
             try {
                 // GỌI API BÍ MẬT CỦA BẠN
                 const res = await fetch('/api/submit', {
