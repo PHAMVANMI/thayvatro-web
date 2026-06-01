@@ -7,16 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js"></script>
     <style>
-        body {
-            background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
-            min-height: 100vh; color: white;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1.5rem;
-        }
+        body { background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .glass-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 1.5rem; }
         .btn-gradient { background: linear-gradient(to right, #0d9488, #2563eb); transition: all 0.3s; }
         .btn-gradient:active { transform: scale(0.96); }
         .hidden-state { display: none !important; }
@@ -28,13 +20,13 @@
 
     <div id="state-input" class="glass-card w-full max-w-md p-8 shadow-2xl text-center">
         <h1 class="text-2xl font-black mb-1">Tham Gia Bài Tập</h1>
-        <p class="text-sm text-gray-300 mb-6" id="status-text">Đang kết nối hệ thống...</p>
+        <p class="text-sm text-gray-300 mb-6" id="status-text">Đang khởi tạo hệ thống...</p>
         
         <form id="joinForm" class="space-y-4">
-            <input type="text" id="roomCode" placeholder="MÃ PHÒNG" maxlength="6" required class="w-full bg-gray-800/40 border border-white/10 text-white text-center font-mono text-2xl font-bold rounded-full py-3 px-6 uppercase opacity-70" readonly>
+            <input type="text" id="roomCode" placeholder="MÃ PHÒNG (6 SỐ)" maxlength="6" required class="w-full bg-white/10 border border-white/30 text-white text-center font-mono text-2xl font-bold rounded-full py-3 px-6 uppercase focus:ring-2 focus:ring-cyan-400">
             <input type="text" id="studentName" placeholder="Họ và tên học sinh" required class="w-full bg-white/10 border border-white/30 text-white text-center rounded-full py-3 px-6 focus:ring-2 focus:ring-cyan-400">
             <input type="text" id="studentId" placeholder="Mã số sinh viên (VD: SV001)" required class="w-full bg-white/10 border border-cyan-400/50 text-white text-center rounded-full py-3 px-6 focus:ring-2 focus:ring-cyan-400">
-            <button type="submit" id="startBtn" class="btn-gradient w-full text-white font-bold text-lg rounded-full py-4 shadow-md" disabled>Bắt Đầu Làm Bài</button>
+            <button type="submit" id="startBtn" class="btn-gradient w-full text-white font-bold text-lg rounded-full py-4 shadow-md">Tìm Phòng & Bắt Đầu</button>
         </form>
     </div>
 
@@ -58,54 +50,85 @@
     </div>
 
     <script>
+        // BẮT MỌI LỖI JS VÀ IN RA MÀN HÌNH ĐỂ DEBUG
+        window.onerror = function(msg, url, line) {
+            document.getElementById('status-text').innerHTML = `<span class="text-red-400 font-bold">Lỗi Web: ${msg} (Dòng ${line})</span>`;
+        };
+
         let examQuestions = [];
         let studentAnswers = {}; 
         let activeRoomRecordName = null;
+        let publicDB = null;
 
-        // CloudKit JS chỉ dùng để ĐỌC đề thi (Rất an toàn)
-        CloudKit.configure({
-            containers: [{
-                containerIdentifier: 'iCloud.com.mipham.testeduviet',
-                apiTokenAuth: { apiToken: 'debcca1ac08a3645258f6c48b1c5b94fe5214cd060912ef8447b8d92fd9020ef' },
-                environment: 'development'
-            }]
-        });
-        const publicDB = CloudKit.getDefaultContainer().publicCloudDatabase;
+        const statusText = document.getElementById('status-text');
+        const roomCodeInput = document.getElementById('roomCode');
+        const startBtn = document.getElementById('startBtn');
 
-        // Tự động load đề từ URL
+        // KHỞI TẠO APPLE CLOUDKIT
+        try {
+            CloudKit.configure({
+                containers: [{
+                    containerIdentifier: 'iCloud.com.mipham.testeduviet',
+                    apiTokenAuth: { apiToken: 'debcca1ac08a3645258f6c48b1c5b94fe5214cd060912ef8447b8d92fd9020ef' },
+                    environment: 'development'
+                }]
+            });
+            publicDB = CloudKit.getDefaultContainer().publicCloudDatabase;
+            statusText.innerText = "Hệ thống sẵn sàng. Vui lòng nhập Mã Phòng.";
+        } catch (e) {
+            statusText.innerHTML = `<span class="text-red-400 font-bold">Lỗi khởi tạo Apple CloudKit: ${e.message}</span>`;
+        }
+
+        // XỬ LÝ LINK TỰ ĐỘNG NẾU GIÁO VIÊN GỬI KÈM MÃ PHÒNG (?room=P8WDZI)
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('room');
         if (code) {
-            document.getElementById('roomCode').value = code.toUpperCase();
+            roomCodeInput.value = code.toUpperCase();
             loadExamData(code.toUpperCase());
-        } else {
-            document.getElementById('status-text').innerText = "Vui lòng truy cập bằng Link của giáo viên!";
         }
 
+        // HÀM TẢI ĐỀ THI TỪ CLOUDKIT
         async function loadExamData(roomCode) {
+            statusText.innerHTML = `<span class="text-yellow-400">Đang tải đề thi từ máy chủ Apple...</span>`;
+            startBtn.disabled = true;
             try {
+                if (!publicDB) throw new Error("CloudKit chưa sẵn sàng.");
                 const query = { recordType: 'GameRoom', filterBy: [{ fieldName: 'roomCode', comparator: 'EQUALS', fieldValue: { value: roomCode, type: 'STRING' } }] };
                 const res = await publicDB.performQuery(query);
-                if (res.records.length === 0) throw new Error("Phòng không tồn tại");
+                
+                if (res.records.length === 0) throw new Error("Mã phòng không tồn tại hoặc đã bị đóng!");
                 
                 activeRoomRecordName = res.records[0].recordName;
                 examQuestions = JSON.parse(res.records[0].fields.questionData.value);
                 
-                document.getElementById('status-text').innerText = "Đã lấy đề thi thành công. Vui lòng nhập thông tin!";
-                document.getElementById('startBtn').disabled = false;
+                statusText.innerHTML = `<span class="text-green-400 font-bold">✓ Đã tìm thấy phòng thi! Vui lòng điền Tên và Mã SV.</span>`;
+                startBtn.innerText = "Bắt Đầu Làm Bài";
+                startBtn.disabled = false;
             } catch (e) {
-                document.getElementById('status-text').innerText = "Lỗi lấy đề thi: " + e.message;
+                statusText.innerHTML = `<span class="text-red-400 font-bold">Lỗi: ${e.message}</span>`;
+                startBtn.disabled = false;
+                examQuestions = []; // Reset đề thi
             }
         }
 
-        // Bấm Bắt đầu làm bài
-        document.getElementById('joinForm').addEventListener('submit', (e) => {
+        // BẤM NÚT TÌM PHÒNG / BẮT ĐẦU LÀM BÀI
+        document.getElementById('joinForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const enteredCode = roomCodeInput.value.toUpperCase();
+
+            // 1. Nếu chưa có đề thi (do học sinh tự gõ mã phòng) -> Tải đề thi
+            if (examQuestions.length === 0) {
+                await loadExamData(enteredCode);
+                return; // Tạm dừng ở đây, đợi học sinh bấm nút lần 2 để bắt đầu
+            }
+
+            // 2. Nếu đã tải đề thi xong -> Chuyển sang màn hình làm bài
             document.getElementById('state-input').classList.add('hidden-state');
             document.getElementById('state-exam').classList.remove('hidden-state');
             renderExam();
         });
 
+        // RENDER CÂU HỎI RA GIAO DIỆN
         function renderExam() {
             const container = document.getElementById('questions-container');
             container.innerHTML = "";
@@ -116,7 +139,8 @@
                 let html = `<div class="glass-card p-6 w-full"><div class="text-cyan-400 font-bold mb-1">Câu ${index + 1}</div><div class="text-lg font-bold mb-4">${cleanText(q.content)}</div><div class="space-y-3">`;
                 q.options.forEach(opt => {
                     const cleanOpt = cleanText(opt);
-                    html += `<button onclick="selectOption('${q.id}', '${cleanOpt}', this)" class="option-btn w-full text-left px-5 py-4 rounded-xl font-medium">${cleanOpt}</button>`;
+                    // Dùng replace để chống lỗi sập web khi đáp án có chứa dấu nháy đơn (VD: don't)
+                    html += `<button onclick="selectOption('${q.id}', '${cleanOpt.replace(/'/g, "\\'")}', this)" class="option-btn w-full text-left px-5 py-4 rounded-xl font-medium">${cleanOpt}</button>`;
                 });
                 html += `</div></div>`;
                 container.innerHTML += html;
@@ -125,15 +149,16 @@
 
         function cleanText(txt) { return txt.replace(/^Câu\s*\d+[\:\.\-]\s*/i, '').replace(/^[A-Z][\.\/\)\-]\s*/, '').trim(); }
 
-        function selectOption(questionId, selectedValue, btnElement) {
+        // CHỌN ĐÁP ÁN
+        window.selectOption = function(questionId, selectedValue, btnElement) {
             Array.from(btnElement.parentElement.children).forEach(c => c.classList.remove('selected'));
             btnElement.classList.add('selected');
             studentAnswers[questionId] = [selectedValue];
             let answered = Object.values(studentAnswers).filter(a => a.length > 0).length;
             document.getElementById('progress-text').innerText = `${answered}/${examQuestions.length}`;
-        }
+        };
 
-        // NỘP BÀI GỌI VERCEL API
+        // NỘP BÀI QUA VERCEL API 
         document.getElementById('finishBtn').addEventListener('click', async () => {
             if(!confirm("Xác nhận nộp bài?")) return;
             
@@ -163,17 +188,13 @@
                     body: JSON.stringify(payload)
                 });
                 
-                // Đọc nguyên bản dữ liệu trả về từ máy chủ
                 const responseText = await res.text(); 
                 let responseData;
-                try {
-                    responseData = JSON.parse(responseText);
-                } catch(parseErr) {
-                    throw new Error("MÁY CHỦ BỊ SẬP (Lỗi Code): " + responseText.substring(0, 100));
-                }
+                try { responseData = JSON.parse(responseText); } 
+                catch(parseErr) { throw new Error("LỖI MÁY CHỦ VERCEL: " + responseText.substring(0, 100)); }
                 
                 if(!res.ok) {
-                    throw new Error(responseData.error + " - " + JSON.stringify(responseData.details || responseData.message));
+                    throw new Error(responseData.error + " - " + JSON.stringify(responseData.details || responseData.message || ""));
                 }
 
                 document.getElementById('state-exam').classList.add('hidden-state');
@@ -183,26 +204,6 @@
                 
             } catch(e) {
                 alert("CHI TIẾT LỖI:\n" + e.message);
-                btn.innerText = "Nộp Bài"; btn.disabled = false;
-            }
-        });
-            try {
-                // GỌI API BÍ MẬT CỦA BẠN
-                const res = await fetch('/api/submit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if(!res.ok) throw new Error("Lỗi API");
-
-                document.getElementById('state-exam').classList.add('hidden-state');
-                document.getElementById('state-result').classList.remove('hidden-state');
-                document.getElementById('final-score').innerText = totalScore.toFixed(1);
-                document.getElementById('final-correct').innerText = `${correctCount}/${examQuestions.length} Câu đúng`;
-                
-            } catch(e) {
-                alert("Lỗi nộp bài, hãy thử lại!");
                 btn.innerText = "Nộp Bài"; btn.disabled = false;
             }
         });
