@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tham gia phòng thi - Thầy và Trò</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Thư viện CloudKit JS chính chủ của Apple -->
     <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js"></script>
     <style>
         body {
@@ -26,13 +25,31 @@
             transition: all 0.3s ease;
         }
         .btn-gradient:active { transform: scale(0.96); }
-        .hidden-state { display: none; }
+        .hidden-state { display: none !important; }
+        
+        #apple-sign-in-button {
+            display: inline-block;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
 
-    <!-- MÀN HÌNH 1: NHẬP THÔNG TIN -->
-    <div id="state-input" class="glass-card w-full max-w-md p-8 shadow-2xl transition-all duration-500 text-center">
+    <div id="state-auth" class="glass-card w-full max-w-md p-8 shadow-2xl transition-all duration-500 text-center">
+        <div class="flex justify-center mb-6">
+            <div class="bg-gray-800 p-4 rounded-full shadow-lg border border-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.19 2.31-.88 3.5-.85 1.5.03 2.88.65 3.82 1.76-3.39 1.95-2.85 5.92.51 7.24-.8 1.96-1.92 3.52-2.91 4.02zm-5.15-13.6c-.1-2.48 1.91-4.66 4.41-4.68.29 2.58-2.12 4.79-4.41 4.68z"/>
+                </svg>
+            </div>
+        </div>
+        <h1 class="text-2xl font-black mb-2">Đăng Nhập Apple</h1>
+        <p class="text-sm text-gray-300 mb-8">Hệ thống yêu cầu định danh tài khoản để ghi nhận kết quả bài thi chính thức.</p>
+        
+        <div id="apple-sign-in-button"></div>
+    </div>
+
+    <div id="state-input" class="hidden-state glass-card w-full max-w-md p-8 shadow-2xl transition-all duration-500 text-center">
         <div class="flex justify-center mb-6">
             <div class="bg-gradient-to-br from-red-500 to-blue-500 p-4 rounded-full shadow-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,9 +57,8 @@
                 </svg>
             </div>
         </div>
-
         <h1 class="text-2xl font-black mb-1">Tham Gia Kiểm Tra</h1>
-        <p class="text-sm text-gray-300 mb-6">Nhập thông tin để vào phòng thi Live</p>
+        <p class="text-sm text-green-400 font-bold mb-6" id="auth-success-text">Đã định danh thành công</p>
 
         <form id="joinForm" class="space-y-4">
             <div>
@@ -63,7 +79,6 @@
         </form>
     </div>
 
-    <!-- MÀN HÌNH 2: ĐANG CHỜ DUYỆT -->
     <div id="state-waiting" class="hidden-state glass-card w-full max-w-md p-8 shadow-2xl text-center">
         <div class="flex justify-center mb-6">
             <div class="bg-orange-500/80 p-6 rounded-full animate-pulse">
@@ -73,19 +88,21 @@
             </div>
         </div>
         <h2 class="text-2xl font-black text-white mb-2">Đang chờ phê duyệt</h2>
-        <p class="text-gray-300 mb-8">Hệ thống đã ghi nhận. Vui lòng đợi giáo viên xác nhận để bắt đầu làm bài kiểm tra.</p>
-        <button id="cancelBtn" class="bg-white/10 border border-white/30 text-white font-bold rounded-full py-3 px-8 hover:bg-white/20 transition">Thoát</button>
+        <p class="text-gray-300 mb-8">Hệ thống đã gửi yêu cầu. Vui lòng nhìn lên màn hình của giáo viên và đợi xác nhận để nhận đề thi.</p>
+        <button id="cancelBtn" class="bg-white/10 border border-white/30 text-white font-bold rounded-full py-3 px-8 hover:bg-white/20 transition">Rời hàng đợi</button>
     </div>
 
-    <!-- JAVASCRIPT: KẾT NỐI CLOUDKIT -->
     <script>
+        const stateAuth = document.getElementById('state-auth');
         const stateInput = document.getElementById('state-input');
         const stateWaiting = document.getElementById('state-waiting');
         const joinForm = document.getElementById('joinForm');
         const roomCodeInput = document.getElementById('roomCode');
         const cancelBtn = document.getElementById('cancelBtn');
+        
+        let currentUserRecordName = null;
 
-        // Khởi tạo CloudKit bằng API Token của bạn
+        // 1. KHỞI TẠO CLOUDKIT JS
         CloudKit.configure({
             containers: [{
                 containerIdentifier: 'iCloud.com.mipham.testeduviet',
@@ -93,72 +110,104 @@
                     apiToken: 'debcca1ac08a3645258f6c48b1c5b94fe5214cd060912ef8447b8d92fd9020ef',
                     persist: true
                 },
-                environment: 'development' // Đang ở chế độ test
+                environment: 'development'
             }]
         });
 
         const container = CloudKit.getDefaultContainer();
         const publicDB = container.publicCloudDatabase;
 
-        // Đọc mã phòng từ Link URL (nếu có)
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlRoomCode = urlParams.get('room');
-        if (urlRoomCode) {
-            roomCodeInput.value = urlRoomCode.toUpperCase();
-            roomCodeInput.setAttribute('readonly', true);
-            roomCodeInput.classList.add('opacity-70');
-        }
+        // 2. XÁC THỰC TÀI KHOẢN APPLE (BẮT BUỘC ĐỂ LẤY deviceAccountID)
+        container.setUpAuth().then(function(userInfo) {
+            if(userInfo) {
+                currentUserRecordName = userInfo.userRecordName;
+                stateAuth.classList.add('hidden-state');
+                stateInput.classList.remove('hidden-state');
+            } else {
+                stateAuth.classList.remove('hidden-state');
+                stateInput.classList.add('hidden-state');
+                
+                container.whenUserSignsIn().then(function(userInfo) {
+                    currentUserRecordName = userInfo.userRecordName;
+                    stateAuth.classList.add('hidden-state');
+                    stateInput.classList.remove('hidden-state');
+                });
+            }
+        }).catch(function(error) {
+            console.error("Lỗi xác thực:", error);
+        });
 
-        // Xử lý gửi dữ liệu lên Apple CloudKit khi bấm "Vào Phòng"
+        // 3. XỬ LÝ GIAO THỨC VÀO PHÒNG (TRÙNG KHỚP 100% VỚI SWIFT CLOUDKITMANAGER)
         joinForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-
             const code = roomCodeInput.value.toUpperCase();
             const name = document.getElementById('studentName').value;
             const studentId = document.getElementById('studentId').value;
+            const btn = document.getElementById('submitBtn');
 
-            // Đổi nút bấm thành trạng thái đang tải
-            document.getElementById('submitBtn').innerText = "Đang kết nối...";
+            btn.innerText = "Đang tìm phòng...";
+            btn.disabled = true;
 
             try {
-                // Tạo một bản ghi OnlinePlayer đẩy lên hệ thống cho giáo viên duyệt
+                // BƯỚC 3.1: Truy vấn GameRoom để lấy RecordID của phòng
+                const query = {
+                    recordType: 'GameRoom',
+                    filterBy: [{ fieldName: 'roomCode', comparator: 'EQUALS', fieldValue: { value: code } }]
+                };
+                
+                const roomResponse = await publicDB.performQuery(query);
+                
+                if (roomResponse.records.length === 0) {
+                    alert("Mã phòng không tồn tại hoặc đã bị đóng!");
+                    btn.innerText = "Vào Phòng";
+                    btn.disabled = false;
+                    return;
+                }
+
+                const roomRecordName = roomResponse.records[0].recordName;
+                btn.innerText = "Đang ghi danh...";
+
+                // BƯỚC 3.2: Tạo bản ghi GamePlayer khớp chính xác với Schema của iOS
                 const newPlayerRecord = {
-                    recordType: 'OnlinePlayer',
+                    recordType: 'GamePlayer',
                     fields: {
-                        roomCode: { value: code },
-                        name: { value: name },
+                        roomReference: { 
+                            value: { recordName: roomRecordName, action: 'DELETE_SELF' }, 
+                            type: 'REFERENCE' 
+                        },
+                        studentName: { value: name },
                         studentCode: { value: studentId },
+                        deviceAccountID: { value: currentUserRecordName }, // Cực kỳ quan trọng để iOS nhận diện
                         status: { value: 'pending' },
-                        totalScore: { value: 0 },
+                        totalScore: { value: 0.0 },
                         correctCount: { value: 0 },
-                        timeTaken: { value: 0 }
+                        isGroup: { value: 0 }
                     }
                 };
 
-                const response = await publicDB.saveRecord(newPlayerRecord);
+                const saveResponse = await publicDB.saveRecord(newPlayerRecord);
                 
-                if (response.hasErrors) {
-                    console.error("Lỗi:", response.errors);
-                    alert("Mã phòng không tồn tại hoặc lỗi kết nối!");
-                    document.getElementById('submitBtn').innerText = "Vào Phòng";
-                } else {
-                    console.log("Đã đẩy dữ liệu thành công:", response.records[0]);
-                    // Chuyển sang màn hình chờ duyệt
-                    stateInput.classList.add('hidden-state');
-                    stateWaiting.classList.remove('hidden-state');
+                if (saveResponse.hasErrors) {
+                    throw new Error(saveResponse.errors[0].message);
                 }
+
+                // Thành công -> Chuyển sang màn hình chờ duyệt
+                stateInput.classList.add('hidden-state');
+                stateWaiting.classList.remove('hidden-state');
+
             } catch (error) {
                 console.error("Lỗi hệ thống:", error);
-                alert("Không thể kết nối đến máy chủ Apple.");
-                document.getElementById('submitBtn').innerText = "Vào Phòng";
+                alert("Lỗi kết nối Apple CloudKit. Xin thử lại.");
+                btn.innerText = "Vào Phòng";
+                btn.disabled = false;
             }
         });
 
-        // Xử lý nút Thoát
         cancelBtn.addEventListener('click', function() {
             stateWaiting.classList.add('hidden-state');
             stateInput.classList.remove('hidden-state');
             document.getElementById('submitBtn').innerText = "Vào Phòng";
+            document.getElementById('submitBtn').disabled = false;
         });
     </script>
 </body>
