@@ -5,16 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tham gia phòng thi - Thầy và Trò</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Thư viện CloudKit JS chính chủ của Apple -->
     <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js"></script>
     <style>
-        /* Hiệu ứng nền Gradient giống SwiftUI */
         body {
             background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
             min-height: 100vh;
             color: white;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        /* Hiệu ứng kính mờ (Glassmorphism) */
         .glass-card {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
@@ -22,20 +21,17 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 1.5rem;
         }
-        /* Nút bấm Gradient */
         .btn-gradient {
-            background: linear-gradient(to right, #0d9488, #2563eb); /* Teal to Blue */
+            background: linear-gradient(to right, #0d9488, #2563eb);
             transition: all 0.3s ease;
         }
-        .btn-gradient:active {
-            transform: scale(0.96);
-        }
-        /* Ẩn các màn hình không cần thiết */
+        .btn-gradient:active { transform: scale(0.96); }
         .hidden-state { display: none; }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
 
+    <!-- MÀN HÌNH 1: NHẬP THÔNG TIN -->
     <div id="state-input" class="glass-card w-full max-w-md p-8 shadow-2xl transition-all duration-500 text-center">
         <div class="flex justify-center mb-6">
             <div class="bg-gradient-to-br from-red-500 to-blue-500 p-4 rounded-full shadow-lg">
@@ -53,24 +49,21 @@
                 <input type="text" id="roomCode" placeholder="MÃ PHÒNG (6 SỐ)" maxlength="6" required
                     class="w-full bg-white/10 border border-white/30 text-white text-center font-mono text-2xl font-bold rounded-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-white/50 uppercase">
             </div>
-            
             <div>
                 <input type="text" id="studentName" placeholder="Họ và tên của bạn" required
                     class="w-full bg-white/10 border border-teal-500/50 text-white rounded-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-teal-400 placeholder-white/50">
             </div>
-
             <div>
                 <input type="text" id="studentId" placeholder="Mã số học sinh / sinh viên" required
                     class="w-full bg-white/10 border border-teal-500/50 text-white rounded-full py-3 px-6 focus:outline-none focus:ring-2 focus:ring-teal-400 placeholder-white/50">
             </div>
-
-            <button type="submit" id="submitBtn"
-                class="btn-gradient w-full text-white font-bold text-lg rounded-full py-4 mt-4 shadow-lg hover:shadow-xl">
+            <button type="submit" id="submitBtn" class="btn-gradient w-full text-white font-bold text-lg rounded-full py-4 mt-4 shadow-lg hover:shadow-xl">
                 Vào Phòng
             </button>
         </form>
     </div>
 
+    <!-- MÀN HÌNH 2: ĐANG CHỜ DUYỆT -->
     <div id="state-waiting" class="hidden-state glass-card w-full max-w-md p-8 shadow-2xl text-center">
         <div class="flex justify-center mb-6">
             <div class="bg-orange-500/80 p-6 rounded-full animate-pulse">
@@ -80,52 +73,92 @@
             </div>
         </div>
         <h2 class="text-2xl font-black text-white mb-2">Đang chờ phê duyệt</h2>
-        <p class="text-gray-300 mb-8">Vui lòng đợi giáo viên xác nhận để bắt đầu làm bài kiểm tra.</p>
-        
-        <button id="cancelBtn" class="bg-white/10 border border-white/30 text-white font-bold rounded-full py-3 px-8 hover:bg-white/20 transition">
-            Thoát
-        </button>
+        <p class="text-gray-300 mb-8">Hệ thống đã ghi nhận. Vui lòng đợi giáo viên xác nhận để bắt đầu làm bài kiểm tra.</p>
+        <button id="cancelBtn" class="bg-white/10 border border-white/30 text-white font-bold rounded-full py-3 px-8 hover:bg-white/20 transition">Thoát</button>
     </div>
 
+    <!-- JAVASCRIPT: KẾT NỐI CLOUDKIT -->
     <script>
-        // Lấy các tham chiếu UI
         const stateInput = document.getElementById('state-input');
         const stateWaiting = document.getElementById('state-waiting');
         const joinForm = document.getElementById('joinForm');
         const roomCodeInput = document.getElementById('roomCode');
         const cancelBtn = document.getElementById('cancelBtn');
 
-        // Bước 1: Tự động lấy Mã phòng nếu học sinh bấm vào link có chứa ?room=123456
+        // Khởi tạo CloudKit bằng API Token của bạn
+        CloudKit.configure({
+            containers: [{
+                containerIdentifier: 'iCloud.com.mipham.testeduviet',
+                apiTokenAuth: {
+                    apiToken: 'debcca1ac08a3645258f6c48b1c5b94fe5214cd060912ef8447b8d92fd9020ef',
+                    persist: true
+                },
+                environment: 'development' // Đang ở chế độ test
+            }]
+        });
+
+        const container = CloudKit.getDefaultContainer();
+        const publicDB = container.publicCloudDatabase;
+
+        // Đọc mã phòng từ Link URL (nếu có)
         const urlParams = new URLSearchParams(window.location.search);
         const urlRoomCode = urlParams.get('room');
         if (urlRoomCode) {
             roomCodeInput.value = urlRoomCode.toUpperCase();
             roomCodeInput.setAttribute('readonly', true);
-            roomCodeInput.classList.add('opacity-70'); // Làm mờ nhẹ để báo hiệu không sửa được
+            roomCodeInput.classList.add('opacity-70');
         }
 
-        // Bước 2: Xử lý sự kiện bấm nút "Vào phòng"
-        joinForm.addEventListener('submit', function(e) {
-            e.preventDefault(); // Ngăn trình duyệt load lại trang
+        // Xử lý gửi dữ liệu lên Apple CloudKit khi bấm "Vào Phòng"
+        joinForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
 
-            const code = roomCodeInput.value;
+            const code = roomCodeInput.value.toUpperCase();
             const name = document.getElementById('studentName').value;
-            const id = document.getElementById('studentId').value;
+            const studentId = document.getElementById('studentId').value;
 
-            // Đổi giao diện sang trạng thái chờ
-            stateInput.classList.add('hidden-state');
-            stateWaiting.classList.remove('hidden-state');
+            // Đổi nút bấm thành trạng thái đang tải
+            document.getElementById('submitBtn').innerText = "Đang kết nối...";
 
-            // TODO: Kết nối CloudKit JS ở đây trong tương lai
-            console.log("Học sinh yêu cầu vào phòng:", { room: code, name: name, studentId: id });
-            
-            // Chỗ này sau này bạn sẽ gọi lệnh lưu dữ liệu học sinh (Trạng thái "pending") lên CloudKit Public Database.
+            try {
+                // Tạo một bản ghi OnlinePlayer đẩy lên hệ thống cho giáo viên duyệt
+                const newPlayerRecord = {
+                    recordType: 'OnlinePlayer',
+                    fields: {
+                        roomCode: { value: code },
+                        name: { value: name },
+                        studentCode: { value: studentId },
+                        status: { value: 'pending' },
+                        totalScore: { value: 0 },
+                        correctCount: { value: 0 },
+                        timeTaken: { value: 0 }
+                    }
+                };
+
+                const response = await publicDB.saveRecord(newPlayerRecord);
+                
+                if (response.hasErrors) {
+                    console.error("Lỗi:", response.errors);
+                    alert("Mã phòng không tồn tại hoặc lỗi kết nối!");
+                    document.getElementById('submitBtn').innerText = "Vào Phòng";
+                } else {
+                    console.log("Đã đẩy dữ liệu thành công:", response.records[0]);
+                    // Chuyển sang màn hình chờ duyệt
+                    stateInput.classList.add('hidden-state');
+                    stateWaiting.classList.remove('hidden-state');
+                }
+            } catch (error) {
+                console.error("Lỗi hệ thống:", error);
+                alert("Không thể kết nối đến máy chủ Apple.");
+                document.getElementById('submitBtn').innerText = "Vào Phòng";
+            }
         });
 
         // Xử lý nút Thoát
         cancelBtn.addEventListener('click', function() {
             stateWaiting.classList.add('hidden-state');
             stateInput.classList.remove('hidden-state');
+            document.getElementById('submitBtn').innerText = "Vào Phòng";
         });
     </script>
 </body>
