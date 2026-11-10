@@ -1,212 +1,420 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bài Tập Trực Tuyến - Thầy và Trò</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js"></script>
-    <style>
-        body { background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .glass-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 1.5rem; }
-        .btn-gradient { background: linear-gradient(to right, #0d9488, #2563eb); transition: all 0.3s; }
-        .btn-gradient:active { transform: scale(0.96); }
-        .hidden-state { display: none !important; }
-        .option-btn { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); transition: all 0.2s; }
-        .option-btn.selected { background: rgba(20, 184, 166, 0.25); border-color: #14b8a6; box-shadow: 0 0 15px rgba(20, 184, 166, 0.3); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- Đảm bảo mọi đường dẫn tương đối luôn trỏ về gốc của server hiện tại -->
+<base href="/">
+<title>Hệ thống thi trực tuyến - Thầy Trò</title>
+<!-- Nhúng thư viện CloudKit JS của Apple -->
+<script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js"></script>
+<style>
+:root {
+--primary-color: #1a73e8;
+--primary-hover: #1557b0;
+--bg-color: #f0f2f5;
+--card-bg: #ffffff;
+--text-main: #202124;
+--text-secondary: #5f6368;
+--border-color: #dadce0;
+--success: #34a853;
+--danger: #ea4335;
+--warning: #fbbc04;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; }
+/* Login Screen */
+#loginScreen { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+.login-card { background: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+.login-card h2 { margin-bottom: 10px; color: var(--primary-color); }
+.login-card p { margin-bottom: 20px; color: var(--text-secondary); font-size: 14px; }
+.login-card input { width: 100%; padding: 16px; border: 2px solid var(--border-color); border-radius: 12px; font-size: 18px; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 16px; outline: none; transition: 0.3s; }
+.login-card input:focus { border-color: var(--primary-color); }
+.login-card button { width: 100%; padding: 16px; border: none; border-radius: 12px; background: var(--primary-color); color: white; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+.login-card button:disabled { background: #ccc; cursor: not-allowed; }
+#errorMsg { color: var(--danger); font-size: 14px; margin-bottom: 16px; min-height: 20px; }
+/* Wait Screen */
+#waitScreen { display: none; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; text-align: center; }
+.wait-card { background: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); max-width: 400px; width: 100%; }
+.pulsing-dot { width: 12px; height: 12px; background-color: var(--warning); border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; margin-right: 8px; }
+@keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(251, 188, 4, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(251, 188, 4, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(251, 188, 4, 0); } }
+/* Exam Screen */
+#examScreen { display: none; padding-bottom: 80px; }
+.top-nav { position: fixed; top: 0; left: 0; right: 0; background: var(--card-bg); box-shadow: 0 1px 3px rgba(0,0,0,0.1); z-index: 100; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
+.exam-title { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50vw; }
+.timer-badge { background-color: #feeceb; color: var(--danger); padding: 4px 10px; border-radius: 16px; font-weight: 700; font-family: monospace; font-size: 15px; display: flex; align-items: center; gap: 4px; }
+.timer-badge.safe { background-color: #e6f4ea; color: var(--success); }
+.container { max-width: 800px; margin: 80px auto 20px; padding: 0 16px; }
+.question-card { background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; scroll-margin-top: 80px; }
+.q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.q-number { font-size: 14px; font-weight: 700; color: var(--primary-color); background: #e8f0fe; padding: 4px 10px; border-radius: 12px; }
+.q-type { font-size: 12px; color: var(--text-secondary); background: var(--bg-color); padding: 4px 8px; border-radius: 8px; }
+.q-text { font-size: 17px; font-weight: 600; margin-bottom: 20px; white-space: pre-wrap; }
+.options-grid { display: flex; flex-direction: column; gap: 10px; }
+.option-label { display: flex; align-items: flex-start; padding: 14px 16px; border: 1.5px solid var(--border-color); border-radius: 12px; cursor: pointer; position: relative; }
+.option-label.selected { border-color: var(--primary-color); background-color: #f8faff; }
+.option-input { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; border: 2px solid var(--text-secondary); border-radius: 50%; margin-right: 12px; flex-shrink: 0; position: relative; margin-top: 2px; }
+.option-input[type="checkbox"] { border-radius: 6px; }
+.option-input:checked { border-color: var(--primary-color); background-color: var(--primary-color); }
+.option-input:checked::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.option-input[type="radio"]:checked::after { width: 8px; height: 8px; background: white; border-radius: 50%; }
+.option-input[type="checkbox"]:checked::after { width: 5px; height: 10px; border: solid white; border-width: 0 2px 2px 0; transform: translate(-50%, -60%) rotate(45deg); }
+.option-text { font-size: 16px; color: var(--text-main); padding-top: 1px; }
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); padding: 12px 16px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); box-shadow: 0 -2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 100; gap: 8px; }
+.progress-btn { display: flex; align-items: center; gap: 6px; background: var(--bg-color); border: none; padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer; }
+.action-btns { display: flex; gap: 8px; }
+.submit-btn { background: var(--primary-color); color: white; border: none; padding: 12px 24px; border-radius: 24px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(26,115,232,0.3); transition: opacity 0.2s; }
+.submit-btn:disabled { background: #bdc1c6; box-shadow: none; cursor: not-allowed; color: white; }
+/* Grid Overlay */
+.grid-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--card-bg); z-index: 200; display: none; flex-direction: column; }
+.grid-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-color); }
+.grid-content { padding: 20px; overflow-y: auto; flex: 1; }
+.q-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 12px; }
+.grid-item { aspect-ratio: 1; border-radius: 12px; border: 2px solid var(--border-color); display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 16px; cursor: pointer; color: var(--text-secondary); }
+.grid-item.answered { background: var(--success); border-color: var(--success); color: white; }
+/* Loader */
+.loader-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); z-index: 1000; display: none; flex-direction: column; justify-content: center; align-items: center; }
+.spinner { width: 40px; height: 40px; border: 4px solid #d2e3fc; border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
 </head>
-<body class="flex flex-col items-center justify-center p-4">
-
-    <div id="state-input" class="glass-card w-full max-w-md p-8 shadow-2xl text-center">
-        <h1 class="text-2xl font-black mb-1">Tham Gia Bài Tập</h1>
-        <p class="text-sm text-gray-300 mb-6" id="status-text">Đang khởi tạo hệ thống...</p>
-        
-        <form id="joinForm" class="space-y-4">
-            <input type="text" id="roomCode" placeholder="MÃ PHÒNG (6 SỐ)" maxlength="6" required class="w-full bg-white/10 border border-white/30 text-white text-center font-mono text-2xl font-bold rounded-full py-3 px-6 uppercase focus:ring-2 focus:ring-cyan-400">
-            <input type="text" id="studentName" placeholder="Họ và tên học sinh" required class="w-full bg-white/10 border border-white/30 text-white text-center rounded-full py-3 px-6 focus:ring-2 focus:ring-cyan-400">
-            <input type="text" id="studentId" placeholder="Mã số sinh viên (VD: SV001)" required class="w-full bg-white/10 border border-cyan-400/50 text-white text-center rounded-full py-3 px-6 focus:ring-2 focus:ring-cyan-400">
-            <button type="submit" id="startBtn" class="btn-gradient w-full text-white font-bold text-lg rounded-full py-4 shadow-md">Tìm Phòng & Bắt Đầu</button>
-        </form>
-    </div>
-
-    <div id="state-exam" class="hidden-state w-full max-w-2xl pb-24">
-        <div class="glass-card p-4 mb-6 flex justify-between items-center sticky top-4 z-50 shadow-xl">
-            <div class="text-white font-bold text-lg">Tiến độ: <span id="progress-text" class="text-cyan-400">0/0</span></div>
-            <button id="finishBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-full font-bold">Nộp Bài</button>
-        </div>
-        <div id="questions-container" class="space-y-6"></div>
-    </div>
-
-    <div id="state-result" class="hidden-state glass-card w-full max-w-md p-8 shadow-2xl text-center">
-        <div class="text-6xl mb-4">🎉</div>
-        <h2 class="text-3xl font-black text-white mb-2">Đã Nộp Bài!</h2>
-        <p class="text-gray-300 mb-6">Kết quả đã được gửi thẳng vào sổ điểm của Giáo viên.</p>
-        <div class="bg-white/10 p-6 rounded-2xl border border-white/10">
-            <div class="text-sm text-gray-400 font-bold uppercase">Điểm Số Của Bạn</div>
-            <div id="final-score" class="text-6xl font-black text-teal-400 mt-2">0.0</div>
-            <div id="final-correct" class="text-green-400 font-medium mt-2">0/0 Câu đúng</div>
-        </div>
-    </div>
-
-    <script>
-        // BẮT MỌI LỖI JS VÀ IN RA MÀN HÌNH ĐỂ DEBUG
-        window.onerror = function(msg, url, line) {
-            document.getElementById('status-text').innerHTML = `<span class="text-red-400 font-bold">Lỗi Web: ${msg} (Dòng ${line})</span>`;
-        };
-
-        let examQuestions = [];
-        let studentAnswers = {}; 
-        let activeRoomRecordName = null;
-        let publicDB = null;
-
-        const statusText = document.getElementById('status-text');
-        const roomCodeInput = document.getElementById('roomCode');
-        const startBtn = document.getElementById('startBtn');
-
-        // KHỞI TẠO APPLE CLOUDKIT
-        try {
-            CloudKit.configure({
-                containers: [{
-                    containerIdentifier: 'iCloud.com.mipham.testeduviet',
-                    apiTokenAuth: { apiToken: 'debcca1ac08a3645258f6c48b1c5b94fe5214cd060912ef8447b8d92fd9020ef' },
-                    environment: 'development'
-                }]
-            });
-            publicDB = CloudKit.getDefaultContainer().publicCloudDatabase;
-            statusText.innerText = "Hệ thống sẵn sàng. Vui lòng nhập Mã Phòng.";
-        } catch (e) {
-            statusText.innerHTML = `<span class="text-red-400 font-bold">Lỗi khởi tạo Apple CloudKit: ${e.message}</span>`;
-        }
-
-        // XỬ LÝ LINK TỰ ĐỘNG NẾU GIÁO VIÊN GỬI KÈM MÃ PHÒNG (?room=P8WDZI)
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('room');
-        if (code) {
-            roomCodeInput.value = code.toUpperCase();
-            loadExamData(code.toUpperCase());
-        }
-
-        // HÀM TẢI ĐỀ THI TỪ CLOUDKIT
-        async function loadExamData(roomCode) {
-            statusText.innerHTML = `<span class="text-yellow-400">Đang tải đề thi từ máy chủ Apple...</span>`;
-            startBtn.disabled = true;
-            try {
-                if (!publicDB) throw new Error("CloudKit chưa sẵn sàng.");
-                const query = { recordType: 'GameRoom', filterBy: [{ fieldName: 'roomCode', comparator: 'EQUALS', fieldValue: { value: roomCode, type: 'STRING' } }] };
-                const res = await publicDB.performQuery(query);
-                
-                if (res.records.length === 0) throw new Error("Mã phòng không tồn tại hoặc đã bị đóng!");
-                
-                activeRoomRecordName = res.records[0].recordName;
-                examQuestions = JSON.parse(res.records[0].fields.questionData.value);
-                
-                statusText.innerHTML = `<span class="text-green-400 font-bold">✓ Đã tìm thấy phòng thi! Vui lòng điền Tên và Mã SV.</span>`;
-                startBtn.innerText = "Bắt Đầu Làm Bài";
-                startBtn.disabled = false;
-            } catch (e) {
-                statusText.innerHTML = `<span class="text-red-400 font-bold">Lỗi: ${e.message}</span>`;
-                startBtn.disabled = false;
-                examQuestions = []; // Reset đề thi
-            }
-        }
-
-        // BẤM NÚT TÌM PHÒNG / BẮT ĐẦU LÀM BÀI
-        document.getElementById('joinForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const enteredCode = roomCodeInput.value.toUpperCase();
-
-            // 1. Nếu chưa có đề thi (do học sinh tự gõ mã phòng) -> Tải đề thi
-            if (examQuestions.length === 0) {
-                await loadExamData(enteredCode);
-                return; // Tạm dừng ở đây, đợi học sinh bấm nút lần 2 để bắt đầu
-            }
-
-            // 2. Nếu đã tải đề thi xong -> Chuyển sang màn hình làm bài
-            document.getElementById('state-input').classList.add('hidden-state');
-            document.getElementById('state-exam').classList.remove('hidden-state');
-            renderExam();
-        });
-
-        // RENDER CÂU HỎI RA GIAO DIỆN
-        function renderExam() {
-            const container = document.getElementById('questions-container');
-            container.innerHTML = "";
-            document.getElementById('progress-text').innerText = `0/${examQuestions.length}`;
-
-            examQuestions.forEach((q, index) => {
-                studentAnswers[q.id] = []; 
-                let html = `<div class="glass-card p-6 w-full"><div class="text-cyan-400 font-bold mb-1">Câu ${index + 1}</div><div class="text-lg font-bold mb-4">${cleanText(q.content)}</div><div class="space-y-3">`;
-                q.options.forEach(opt => {
-                    const cleanOpt = cleanText(opt);
-                    // Dùng replace để chống lỗi sập web khi đáp án có chứa dấu nháy đơn (VD: don't)
-                    html += `<button onclick="selectOption('${q.id}', '${cleanOpt.replace(/'/g, "\\'")}', this)" class="option-btn w-full text-left px-5 py-4 rounded-xl font-medium">${cleanOpt}</button>`;
-                });
-                html += `</div></div>`;
-                container.innerHTML += html;
-            });
-        }
-
-        function cleanText(txt) { return txt.replace(/^Câu\s*\d+[\:\.\-]\s*/i, '').replace(/^[A-Z][\.\/\)\-]\s*/, '').trim(); }
-
-        // CHỌN ĐÁP ÁN
-        window.selectOption = function(questionId, selectedValue, btnElement) {
-            Array.from(btnElement.parentElement.children).forEach(c => c.classList.remove('selected'));
-            btnElement.classList.add('selected');
-            studentAnswers[questionId] = [selectedValue];
-            let answered = Object.values(studentAnswers).filter(a => a.length > 0).length;
-            document.getElementById('progress-text').innerText = `${answered}/${examQuestions.length}`;
-        };
-
-        // NỘP BÀI QUA VERCEL API 
-        document.getElementById('finishBtn').addEventListener('click', async () => {
-            if(!confirm("Xác nhận nộp bài?")) return;
-            
-            const btn = document.getElementById('finishBtn');
-            btn.innerText = "Đang nộp..."; btn.disabled = true;
-
-            let correctCount = 0;
-            examQuestions.forEach(q => {
-                const myAns = studentAnswers[q.id] || [];
-                const correctAns = q.correctAnswer.map(ans => cleanText(ans));
-                if (myAns.length > 0 && myAns[0].toLowerCase() === correctAns[0].toLowerCase()) correctCount++;
-            });
-            const totalScore = examQuestions.length === 0 ? 0.0 : (correctCount / examQuestions.length) * 10.0;
-
-            const payload = {
-                roomRecordName: activeRoomRecordName,
-                studentName: document.getElementById('studentName').value,
-                studentCode: document.getElementById('studentId').value.toUpperCase(),
-                correctCount: correctCount,
-                totalScore: totalScore
-            };
-
-            try {
-                const res = await fetch('/api/submit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const responseText = await res.text(); 
-                let responseData;
-                try { responseData = JSON.parse(responseText); } 
-                catch(parseErr) { throw new Error("LỖI MÁY CHỦ VERCEL: " + responseText.substring(0, 100)); }
-                
-                if(!res.ok) {
-                    throw new Error(responseData.error + " - " + JSON.stringify(responseData.details || responseData.message || ""));
-                }
-
-                document.getElementById('state-exam').classList.add('hidden-state');
-                document.getElementById('state-result').classList.remove('hidden-state');
-                document.getElementById('final-score').innerText = totalScore.toFixed(1);
-                document.getElementById('final-correct').innerText = `${correctCount}/${examQuestions.length} Câu đúng`;
-                
-            } catch(e) {
-                alert("CHI TIẾT LỖI:\n" + e.message);
-                btn.innerText = "Nộp Bài"; btn.disabled = false;
-            }
-        });
-    </script>
+<body>
+<!-- 1. Màn hình Login -->
+<div id="loginScreen">
+<div class="login-card">
+<h2>Hệ thống Thi Trực tuyến</h2>
+<p>Vui lòng nhập thông tin để vào phòng thi.</p>
+<div id="errorMsg"></div>
+<input type="text" id="roomCode" placeholder="MÃ PHÒNG" autocomplete="off">
+<input type="text" id="authCode" placeholder="MÃ SINH VIÊN" autocomplete="off" onkeyup="if(event.key === 'Enter') verifyStudent()">
+<input type="text" id="studentName" placeholder="HỌ TÊN" autocomplete="off" onkeyup="if(event.key === 'Enter') verifyStudent()">
+<button id="authBtn" onclick="verifyStudent()">VÀO PHÒNG</button>
+</div>
+</div>
+<!-- 2. Màn hình Chờ -->
+<div id="waitScreen">
+<div class="wait-card">
+<h2 style="color:var(--success); margin-bottom: 10px;">Vào phòng thành công!</h2>
+<div style="width:60px; height:60px; background:#e6f4ea; border-radius:50%; display:flex; align-items:center; justify-content:center; margin: 0 auto 20px;">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+</div>
+<div style="display:flex; align-items:center; justify-content:center; margin-bottom:20px; font-weight:600; color:var(--warning);">
+<div class="pulsing-dot"></div>
+Đang chờ giáo viên phát đề...
+</div>
+<p style="color:var(--text-secondary); font-size:14px;">Vui lòng giữ nguyên màn hình này.</p>
+</div>
+</div>
+<!-- Loading -->
+<div id="loader" class="loader-overlay">
+<div class="spinner"></div>
+<div style="font-weight: 600; color: var(--text-secondary); margin-top: 16px;">Đang kết nối Apple iCloud...</div>
+</div>
+<!-- 3. Giao diện Làm bài -->
+<div id="examScreen">
+<div class="top-nav">
+<div class="exam-title" id="navTitle">Tên bài thi</div>
+<div class="timer-badge safe" id="timerBadge"><span id="timerText">00:00</span></div>
+</div>
+<div class="container"><form id="examForm"><div id="questionsContainer" class="question-list"></div></form></div>
+<div class="bottom-bar">
+<button class="progress-btn" onclick="toggleGrid(true)"><span id="progressText">0/0</span></button>
+<div class="action-btns">
+<button class="submit-btn" id="submitBtn" onclick="submitExam()" disabled>NỘP BÀI</button>
+</div>
+</div>
+</div>
+<!-- Grid Overlay -->
+<div id="gridOverlay" class="grid-overlay">
+<div class="grid-header">
+<div style="font-weight: 700; font-size: 18px;">Tổng quan bài làm</div>
+<button style="font-size:24px; background:none; border:none;" onclick="toggleGrid(false)">×</button>
+</div>
+<div class="grid-content"><div class="q-grid" id="qGrid"></div></div>
+</div>
+<script>
+// --- 1. CẤU HÌNH CLOUDKIT ---
+CloudKit.configure({
+containers: [{
+containerIdentifier: 'iCloud.com.mipham.testeduviet',
+apiTokenAuth: {
+apiToken: '76cef15c6c9f0771d09a7b240bea5258aaf632da1b033008a0ad846ed3b6dc87',
+initialAuthMethod: 'apiTokenAuth'
+},
+environment: 'development' // Có thể đổi thành 'production' sau này
+}]
+});
+const container = CloudKit.getDefaultContainer();
+const publicDB = container.publicCloudDatabase;
+let currentRoomRecord = null;
+let examData = null;
+let studentCodeStr = "";
+let studentNameStr = "";
+let roomCodeStr = "";
+let remainingTime = 0;
+let timerInterval;
+let pollingInterval;
+let totalQs = 0;
+let hasStarted = false;
+// --- THUẬT TOÁN TRỘN ĐỀ (Fisher-Yates) ---
+function shuffleArray(array) {
+let currentIndex = array.length, randomIndex;
+while (currentIndex != 0) {
+randomIndex = Math.floor(Math.random() * currentIndex);
+currentIndex--;
+[array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+}
+return array;
+}
+// --- 2. XÁC THỰC SINH VIÊN QUA CLOUDKIT ---
+async function verifyStudent() {
+roomCodeStr = document.getElementById('roomCode').value.trim().toUpperCase();
+studentCodeStr = document.getElementById('authCode').value.trim();
+studentNameStr = document.getElementById('studentName').value.trim();
+if(!roomCodeStr || !studentCodeStr || !studentNameStr) {
+alert("Vui lòng điền đủ Mã Phòng, Mã SV và Họ Tên.");
+return;
+}
+const btn = document.getElementById('authBtn');
+const err = document.getElementById('errorMsg');
+btn.disabled = true;
+btn.innerText = "ĐANG TÌM PHÒNG...";
+err.innerText = "";
+document.getElementById('loader').style.display = 'flex';
+try {
+// Truy vấn phòng thi từ CloudKit
+const query = {
+recordType: 'LiveExamRoom',
+filterBy: [{
+fieldName: 'roomCode',
+comparator: 'EQUALS',
+fieldValue: { value: roomCodeStr }
+}]
+};
+const response = await publicDB.performQuery(query);
+if (response.records.length > 0) {
+currentRoomRecord = response.records[0];
+if (currentRoomRecord.fields.status.value === "waiting" || currentRoomRecord.fields.status.value === "playing") {
+// Phân tích JSON đề thi lưu trong CloudKit
+const examJSONString = currentRoomRecord.fields.examDataJSON.value;
+examData = JSON.parse(examJSONString);
+document.getElementById('welcomeScreen').style.display = 'none';
+document.getElementById('waitScreen').style.display = 'flex';
+startPollingStatus();
+} else {
+throw new Error("Phòng thi đã đóng.");
+}
+} else {
+throw new Error("Không tìm thấy mã phòng này.");
+}
+} catch (error) {
+err.innerText = error.message || "Lỗi kết nối Apple iCloud.";
+} finally {
+btn.disabled = false;
+btn.innerText = "VÀO PHÒNG";
+document.getElementById('loader').style.display = 'none';
+}
+}
+// --- 3. LẮNG NGHE LỆNH TỪ GIÁO VIÊN (POLLING CLOUDKIT) ---
+function startPollingStatus() {
+const randomInterval = Math.floor(Math.random() * 3000) + 4000; // Giãn cách 4-7 giây để chống sập server Apple
+pollingInterval = setInterval(async () => {
+try {
+// Tải lại bản ghi Room để lấy trạng thái mới nhất
+const response = await publicDB.fetchRecords(currentRoomRecord.recordName);
+if (response.records.length > 0) {
+currentRoomRecord = response.records[0];
+const status = currentRoomRecord.fields.status.value;
+if (status === "closed") {
+clearInterval(pollingInterval);
+alert("Giáo viên đã đóng phòng thi.");
+location.reload();
+return;
+}
+// Bắt đầu thi
+if (status === "playing" && !hasStarted) {
+clearInterval(pollingInterval);
+startExamNow();
+}
+}
+} catch(e) {
+console.log("Lỗi Polling:", e);
+}
+}, randomInterval);
+}
+// --- 4. BẮT ĐẦU LÀM BÀI ---
+function startExamNow() {
+if (!examData) return;
+hasStarted = true;
+// TRỘN CÂU HỎI VÀ ĐÁP ÁN NGẪU NHIÊN CHO TỪNG HỌC SINH
+if (currentRoomRecord.fields.isSelfPaced.value === 1) {
+examData.questions = shuffleArray(examData.questions);
+examData.questions.forEach(q => {
+if (q.options && q.options.length > 0) {
+q.options = shuffleArray(q.options);
+}
+});
+}
+document.getElementById('waitScreen').style.display = 'none';
+document.getElementById('examScreen').style.display = 'block';
+document.title = examData.title;
+document.getElementById('navTitle').innerText = examData.title;
+remainingTime = examData.durationSeconds;
+totalQs = examData.questions.length;
+renderQuestions();
+renderGrid();
+startTimer();
+loadSavedState();
+updateProgress();
+}
+function renderQuestions() {
+const container = document.getElementById('questionsContainer');
+let html = '';
+examData.questions.forEach((q, idx) => {
+const inputType = (q.type === 'multiple_select' || q.type === 'multiple choice') ? 'checkbox' : 'radio';
+const typeLabel = inputType === 'checkbox' ? 'Nhiều đáp án' : 'Một đáp án';
+html += <div class="question-card" id="card-${q.id}"> <div class="q-header"><div class="q-number">Câu ${idx + 1}</div><div class="q-type">${typeLabel}</div></div> <div class="q-text">${q.content}</div> <div class="options-grid">;
+q.options.forEach((opt, optIdx) => {
+const optId = opt-${q.id}-${optIdx};
+html += <label class="option-label" id="label-${optId}"> <input type="${inputType}" name="${q.id}" value="${opt}" id="${optId}" class="option-input" onchange="handleSelection('${q.id}', '${inputType}')"> <span class="option-text">${opt}</span> </label>;
+});
+html += </div></div>;
+});
+container.innerHTML = html;
+}
+function renderGrid() {
+let html = '';
+examData.questions.forEach((q, idx) => { html += <div class="grid-item" id="grid-${q.id}" onclick="scrollToQ('${q.id}')">${idx + 1}</div>; });
+document.getElementById('qGrid').innerHTML = html;
+}
+function handleSelection(qId, type) {
+document.querySelectorAll(input[name="${qId}"]).forEach(input => {
+if (type === 'radio') document.getElementById(label-${input.id}).classList.remove('selected');
+if(input.checked) document.getElementById(label-${input.id}).classList.add('selected');
+else document.getElementById(label-${input.id}).classList.remove('selected');
+});
+saveState();
+updateProgress();
+}
+function updateProgress() {
+const answers = getAnswers();
+const answeredCount = Object.keys(answers).length;
+document.getElementById('progressText').innerText = ${answeredCount}/${totalQs};
+examData.questions.forEach(q => {
+const el = document.getElementById(grid-${q.id});
+if (answers[q.id] && answers[q.id].length > 0) el.classList.add('answered');
+else el.classList.remove('answered');
+});
+const canSubmit = answeredCount > 0;
+document.getElementById('submitBtn').disabled = !canSubmit;
+}
+function toggleGrid(show) { document.getElementById('gridOverlay').style.display = show ? 'flex' : 'none'; }
+function scrollToQ(qId) {
+toggleGrid(false);
+const el = document.getElementById(card-${qId});
+if(el) { el.scrollIntoView({ behavior: 'smooth' }); el.style.boxShadow = '0 0 0 2px var(--primary-color)'; setTimeout(() => { el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'; }, 500); }
+}
+function getAnswers() {
+const answers = {};
+examData.questions.forEach(q => {
+const selected = document.querySelectorAll(input[name="${q.id}"]:checked);
+if (selected.length > 0) answers[q.id] = Array.from(selected).map(el => el.value);
+});
+return answers;
+}
+function saveState() {
+localStorage.setItem('tempExamState_' + examData.title, JSON.stringify({ studentCode: studentCodeStr, answers: getAnswers() }));
+}
+function loadSavedState() {
+const saved = localStorage.getItem('tempExamState_' + examData.title);
+if (saved) {
+try {
+const data = JSON.parse(saved);
+if (data.studentCode !== studentCodeStr) return;
+if (data.answers) {
+for (const [qId, values] of Object.entries(data.answers)) {
+values.forEach(val => {
+const input = document.querySelector(input[name="${qId}"][value="${val}"]);
+if (input) { input.checked = true; document.getElementById(label-${input.id}).classList.add('selected'); }
+});
+}
+}
+} catch(e) {}
+}
+}
+function startTimer() {
+updateTimerDisplay();
+timerInterval = setInterval(() => {
+if (remainingTime > 0) {
+remainingTime--;
+updateTimerDisplay();
+} else {
+clearInterval(timerInterval);
+// THÊM ĐỘ TRỄ NỘP BÀI KHI HẾT GIỜ (JITTER) ĐỂ TRÁNH QUÁ TẢI CLOUDKIT
+const randomDelay = Math.floor(Math.random() * 5000);
+setTimeout(() => {
+alert("Hết giờ làm bài! Hệ thống tự động nộp.");
+submitExam();
+}, randomDelay);
+}
+}, 1000);
+}
+function updateTimerDisplay() {
+const m = Math.floor(remainingTime / 60).toString().padStart(2, '0');
+const s = (remainingTime % 60).toString().padStart(2, '0');
+document.getElementById('timerText').innerText = ${m}:${s};
+if (remainingTime <= 300) document.getElementById('timerBadge').classList.remove('safe');
+}
+// --- 5. NỘP BÀI QUA CLOUDKIT ---
+async function submitExam() {
+if (!studentCodeStr) return;
+const btn = document.getElementById('submitBtn');
+btn.innerText = "ĐANG NỘP...";
+btn.disabled = true;
+document.getElementById('loader').style.display = 'flex';
+// 1. Chấm điểm trực tiếp trên Web
+let correct = 0;
+const userAnswers = getAnswers();
+examData.questions.forEach(q => {
+const uAns = userAnswers[q.id] || [];
+const cAns = q.correctAnswer || [];
+if (uAns.length === cAns.length && uAns.every(val => cAns.includes(val)) && cAns.length > 0) {
+correct++;
+}
+});
+const totalQ = examData.questions.length || 1;
+const finalScore = (correct * (10.0 / totalQ)).toFixed(1);
+// 2. Tạo bản ghi Nộp bài trên CloudKit
+const submissionRecord = {
+recordType: 'LiveSubmission',
+fields: {
+roomCode: { value: roomCodeStr },
+studentCode: { value: studentCodeStr },
+studentName: { value: studentNameStr },
+totalScore: { value: parseFloat(finalScore) },
+correctCount: { value: correct },
+timeTaken: { value: examData.durationSeconds - remainingTime }
+}
+};
+try {
+const response = await publicDB.saveRecords(submissionRecord);
+if (response.records.length > 0) {
+clearInterval(timerInterval);
+localStorage.removeItem('tempExamState_' + examData.title);
+showSuccessScreen(finalScore);
+} else {
+throw new Error("Lỗi lưu trữ Apple");
+}
+} catch (error) {
+document.getElementById('loader').style.display = 'none';
+btn.innerText = "NỘP BÀI LẠI";
+btn.disabled = false;
+alert("Lỗi mạng khi nộp lên Apple iCloud. Vui lòng ấn nộp lại.");
+}
+}
+function showSuccessScreen(score) {
+document.body.innerHTML = <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:white; text-align:center; padding:20px;"> <div style="width:80px; height:80px; background:#e6f4ea; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:20px;"> <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> </div> <h2 style="color:var(--text-main); margin:0 0 10px;">Nộp bài thành công!</h2> <p style="color:var(--text-secondary); margin:0;">Mã SV: ${studentCodeStr.toUpperCase()}</p> <p style="color:var(--primary-color); font-size: 24px; font-weight: bold; margin-top: 15px;">Điểm số: ${score}</p> <button onclick="location.reload()" style="margin-top: 30px; padding: 10px 20px; border: none; background: #f0f2f5; border-radius: 8px; font-weight: bold; cursor: pointer;">Trở về trang chủ</button> </div>;
+}
+</script>
 </body>
 </html>
